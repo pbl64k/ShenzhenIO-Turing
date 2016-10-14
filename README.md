@@ -215,7 +215,7 @@ memory.
 
 The virtual hardware in Shenzhen I/O is reasonably capable, but it's pretty different from traditional CPUs (using
 [Harvard architecture](https://en.wikipedia.org/wiki/Harvard_architecture), in particular), and individual microcontrollers
-have severe limitations, with the mighty MC6000 being [incapable][1] of swapping the values of its two registers without outside
+have severe limitations, with the mighty MC6000 being [incapable](#fn1) of swapping the values of its two registers without outside
 help, for example.
 
 So my primary goal when starting this project was to implement something ostensibly general-purpose and at least approaching
@@ -557,6 +557,6 @@ stuff. No reason why we couldn't stuff merge sort into a thousand words. If we c
 arbitrary precision integers, and having an inexhaustible source of on-demand memory, why, it's blindingly obvious
 that it would be Turing complete, even though the formal proof does not exist.
 
-[1]: I'm gonna slap anyone who says, "Oh, but you can swap two integers..." here. If you don't understand why you really
-can't, *slap*.
+<a name="#fn1">1</a> I'm gonna slap anyone who says, "Oh, but you can swap two integers..." here. If you don't understand
+why you really can't, *slap*.
 
