@@ -322,18 +322,18 @@ simply give a brief outline of the process and the outcome.
 
 As soon as I started working on the register block I realized that implementing three specialized registers is probably
 going to be much more involved than using another standard RAM chip to implement ten more general purpose registers.
-Why ten? So that I can offload a large part of ALU duties onto the register block itself. The register block end up
-being a fairly capable processing unit in its own right, interpreting a large, orthogonal set of opcodes where two
-least significant digits encoded the numbers of source and destination registers. It supported instructions of the
-general form `MOV rX + imm, rY` and `ADD rX + imm, rY` with several shortcuts for common special cases. At this point
-I changed the planned instruction set to a proper load-store with indirect adressing, as all arithmetics could be done
-insude the register block.
+Why ten? So that I can offload a large part of ALU duties onto the register block itself. The register block ended up
+being a fairly capable processing unit in its own right, interpreting a large, orthogonal set of opcodes where the two
+least significant digits encoded the indices of source and destination registers. It supported instructions of general
+form `MOV rX + imm, rY` and `ADD rX + imm, rY` with several shortcuts for common special cases, e.g., `imm = 0`. At
+this point I changed the planned instruction set to a proper load-store with indirect adressing, as all arithmetics
+could be done insude the register block.
 
 Unfortunately, while all of this was aesthetically pleasing etc., once I implemented the monitor/debugger and got down
-to implementing the CPU, I realized that this just isn't going to work. Register block took up about as much space as
-the RAM system with 28 words. The remaining space on the board was sufficient to place two MC6000s. With fairly rich
-instruction set, simple experiments quickly demonstrated that there was no way to fit all the CPU logic into 28 MC6000
-instructions.
+to implementing the CPU, I realized that this just wasn't going to work. Register block took up about as much space as
+the RAM module with 28 words. The remaining space on the board was sufficient to place no more than two MC6000s. With
+fairly rich instruction set, simple experiments quickly demonstrated that there was no way to fit all the CPU logic
+into 28 MC6000 instructions.
 
 I thrashed about a bit.
 
@@ -353,7 +353,7 @@ used in the real world.
 
 I won't go into much detail on implementation, code can be viewed [in the save file](./prototyping-area-1.txt).
 
-This system consists of standard numeric LCD and gamepad components as well as two MC6000s, one responsible for talking
+This subsystem consists of standard numeric LCD and gamepad components as well as two MC6000s, one responsible for talking
 to memory controller and managing the edit address, and the other talking to gamepad and LCD and handling changes in the
 data. Due to the way gamepad works, this part of design actually moves forward in time (the CPU and the rest can
 operate in a single time unit). I eventually exploited this to my advantage: while the monitor tells the CPU to start
@@ -364,7 +364,7 @@ I implemented monitor/debugger after finishing with the register block, and as w
 the same through the subsequent permutations and architecture changes. I've run into a few problems down the road with
 edit address controller polluting the memory bus despite CPU already running (the memory system design should readily
 tell you that no two components should talk on the memory bus at the same time, unless they're coordinating between them
-to perform a single read-write cycle), but that was esily if crudely fixable. Part of that involved moving the CPU
+to perform a single read-write cycle), but that was easily if crudely fixable. Part of that involved moving the CPU
 boot up from *Start* button key-down to key-up, the rest was reshuffling the way the monitor talked to the memory system
 a bit.
 
