@@ -4,16 +4,32 @@ These notes are WIP, stay tuned.
 
 ## What's Shenzhen I/O?
 
-Shenzhen I/O is a Zach-like puzzle/enginerring game by Zachtronics, somewhat similar to their earlier TIS-100. Zach Barth
-strikes again! Zach. (I just thought that maybe there weren't enough Zachs in this paragraph.)
+[Shenzhen I/O](http://www.zachtronics.com/shenzhen-io/) is a Zach-like puzzle/engineering game by
+[Zachtronics](http://www.zachtronics.com/), somewhat similar to their earlier
+[TIS-100](http://www.zachtronics.com/tis-100/). Zach Barth strikes again! Zach. (I just thought that maybe there
+weren't enough Zachs in this paragraph.)
 
-Shenzhen I/O is currently (as of Oct 2016) in Early Access on Steam.
+Shenzhen I/O is currently (as of Oct 2016) in Early Access [on Steam](http://store.steampowered.com/app/504210/).
 
-## Spec
+## Capabilities & Limitations
 
-Betelgeuse 9900 is a universal, programmable, von Neumann architecture microcomputer in 1970s style. It is very much
-a RASP, modulo certain ugly real-life details. It has 42 almost-11-bit words of RAM, simple numeric display and
-a gamepad. Monitor/debugger is implemented in "hardware" and uses the gamepad for input.
+Betelgeuse 9900 is a universal, programmable, [von Neumann architecture](https://en.wikipedia.org/wiki/Von_Neumann_architecture)
+microcomputer in [1970s style](https://en.wikipedia.org/wiki/Altair_8800)
+([TEC-1 is perhaps a closer match](https://en.wikipedia.org/wiki/TEC-1)). It is very much a
+[RASP](https://en.wikipedia.org/wiki/Random-access_stored-program_machine), modulo certain ugly real-world details. It
+has 42 almost-11-bit words of RAM, simple numeric display and a gamepad. Monitor/debugger is implemented in "hardware"
+and uses the gamepad for input.
+
+The architecture is capable of addressing 1000 words of RAM, and the memory controller design is such that more RAM
+chips could be easily added to it up to that limit. Unfortunately, there simply isn't enough space on the virtual
+circuit board to fit more that one address router assembly.
+
+The CPU has no access to I/O devices, so the only way the operator can interact with the program is through using the
+hardware monitor/debugger. Once again, ignoring the board space limitations, I/O could be implemented without changing
+the architecture or instruction set by injecting a DMA controller into the memory bus.
+
+The CPU counts in decimal, with value range from -999 to 999, because that's what virtual microcontrollers it's implemented
+on do.
 
 ## In Action!
 
@@ -23,7 +39,7 @@ a gamepad. Monitor/debugger is implemented in "hardware" and uses the gamepad fo
 ## In-Game Cost
 
 | Part      | Number | Cost Per Unit | Total |                                                           |
-| --------- | ------:| -------------:|------:| --------------------------------------------------------- |
+|:--------- | ------:| -------------:|------:| --------------------------------------------------------- |
 | MC6000    | 6      | ¥5            | ¥30   | CPU1-3, PC, Mon/Dbg1-2                                    |
 | MC4000X   | 5      | ¥3            | ¥15   | memory controller, address router, RAM chip controller x3 |
 | 100P-14   | 3      | ¥2            | ¥6    | RAM chips                                                 |
@@ -32,6 +48,9 @@ a gamepad. Monitor/debugger is implemented in "hardware" and uses the gamepad fo
 | Total     | 16     |               | ¥57   |                                                           |
 
 ## Instruction Set
+
+B9900's instruction set is even more limited than that of the underlying MC series virtual microcontrollers, but it
+compensates for that by being a stored-program computer, thus being capable of running self-modifying code.
 
 | Opcode    | Mnemonic        | Description                                                            |
 | ---------:| --------------- | ---------------------------------------------------------------------- |
@@ -43,7 +62,21 @@ a gamepad. Monitor/debugger is implemented in "hardware" and uses the gamepad fo
 
 `HALT` is a single-word instruction, all other instructions consist of three words--opcode followed by two addresses.
 
-Words are decimal integers in -999..999 range, as dictated by the underlying "chips."
+Words are decimal integers in the -999 to 999 range, as dictated by the underlying "chips."
+
+While all instructions use direct addressing mode, indirect addressing can be easily implemented by using
+self-modifying code. For example, `MOV [src], [dst]` could be implemented as:
+
+            MOV     src, ADDR + 1
+            MOV     dst, ADDR + 2
+    ADDR:   MOV     0, 0
+
+Obviously, this requires knowledge of `ADDR`, and both `ADDR + 1` and `ADDR + 2` are constants that should be computed
+when translating from assembly language notation to opcodes.
+
+Capability for indirect addressing means it's possible to implement arrays, stacks and queues. In particular, `PUSH`,
+`POP`, `CALL` and `RET` can be implemented to create a call stack. Unfortunately, the actual implementation with its
+meagre 42 words of memory can't possibly run any useful programs using the call stack implemented this way.
 
 ## Operation
 
