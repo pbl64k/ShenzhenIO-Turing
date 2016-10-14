@@ -1,5 +1,7 @@
 # Betelgeuse 9900
 
+Yo dawg! We heard you like Assembly language...
+
 ## What's Shenzhen I/O?
 
 [Shenzhen I/O](http://www.zachtronics.com/shenzhen-io/) is a Zach-like puzzle/engineering game by
@@ -13,10 +15,10 @@ Shenzhen I/O is currently (as of Oct 2016) in Early Access [on Steam](http://sto
 
 Betelgeuse 9900 is a universal, programmable, [von Neumann architecture](https://en.wikipedia.org/wiki/Von_Neumann_architecture)
 microcomputer in [1970s style](https://en.wikipedia.org/wiki/Altair_8800)
-([TEC-1 is perhaps a closer match](https://en.wikipedia.org/wiki/TEC-1)). It is very much a
-[RASP](https://en.wikipedia.org/wiki/Random-access_stored-program_machine), modulo certain ugly real-world details. It
-has 42 almost-11-bit words of RAM, simple numeric display and a gamepad. Monitor/debugger is implemented in "hardware"
-and uses the gamepad for input.
+([TEC-1 is perhaps a closer match](https://en.wikipedia.org/wiki/TEC-1)) implemented in sandbox mode of Shenzhen I/O.
+It is very much a [RASP](https://en.wikipedia.org/wiki/Random-access_stored-program_machine), modulo certain ugly
+real-world details. It has 42 almost-11-bit words of RAM, simple numeric display and a gamepad. Monitor/debugger is
+implemented in "hardware" and uses the gamepad for input.
 
 The architecture is capable of addressing 1000 words of RAM, and the memory controller design is such that more RAM
 chips could be easily added to it up to that limit. Unfortunately, there simply isn't enough space on the virtual
@@ -211,29 +213,31 @@ memory.
 
 ### Goals
 
-The virtual hardware in Shenzhen I/O is reasonably capable, but it's pretty different from traditional CPUs (using Harvard
-architecture, in particular), and individual microcontrollers have severe limitations, with the mighty MC6000 being incapable
-of swapping the values of its two registers without outside help, for example.
+The virtual hardware in Shenzhen I/O is reasonably capable, but it's pretty different from traditional CPUs (using
+[Harvard architecture](https://en.wikipedia.org/wiki/Harvard_architecture), in particular), and individual microcontrollers
+have severe limitations, with the mighty MC6000 being [incapable][1] of swapping the values of its two registers without outside
+help, for example.
 
 So my primary goal when starting this project was to implement something ostensibly general-purpose and at least approaching
 capabilities of first microcomputers from the 1970s. I also wanted to create something that would have at least remotely
 usable yet realistic looking UI. Using ROM chips for entering the code then dumping it into RAM on startup probably would
 have been an easy way out, but I really wanted to fit numeric LCD and gamepad into this project.
 
-Looking at the final results, I would say that B9900 successfully achieves these goals.
+Looking at the final results, I would say that B9900 successfully achieves both of these goals.
 
 ### Initial Plans
 
 B9900 architecture and instruction set are largely something that I had to go with, as my original designs failed one after
 another.
 
-I dismissed the idea of using OISC before I even started, because I believed that it would undermine the design's
-practicality. OISC designs that I'm aware of typically require three word instructions, and while those instructions do a
-lot, writing optimal OISC code seems to be pretty hard, while using standard translations for simpler instructions likely
-wouldn't allow implementation even of something as trivial as the factorial program due to memory constraints.
+I dismissed the idea of using [OISC](https://en.wikipedia.org/wiki/One_instruction_set_computer) before I even started,
+because I believed that it would undermine the design's practicality. OISC designs that I'm aware of typically require three
+word instructions, and while those instructions do a lot, writing optimal OISC code seems to be pretty hard, while using
+standard translations for simpler instructions likely wouldn't allow implementation even of something as trivial as the
+factorial program due to memory constraints.
 
 So my original design envisioned using three fairly specialized registers (`acc`, `addr` and `pc`), with the only addressing
-mode being indirect using `addr` register. This wasn't a proper load-store design due to small number of planned registers,
+mode being indirect using the `addr` register. This wasn't a proper load-store design due to small number of planned registers,
 so there was an `ADD [addr]` instruction, for example. Having outlined all of this in a text file, I started working on the
 first part of the machine.
 
@@ -304,18 +308,55 @@ The primary purpose of the memory controller is to mux/demux a single memory bus
 handled down the line by address router(s) and individual RAM chip controllers. Support for optional read-only cycle
 was added late in the final stages of design due to the need to optimize CPU implementation.
 
-The controller reads data from the memory bus (`x2`). Negative number indicates that the sender want to perform a short
+The controller reads data from the memory bus (`x2`). Negative number indicates that the sender wants to perform a short
 read-only cycle, and will send address immediately afterwards. Non-negative numbers are interpreted as addresses, and
-a full read-write cycle is initiated. Received address is send to the address router through address bus (`x3`), and
-the controllers start waiting for data on data bus `x1`. If a read-only cycle was requested, the data received is sent
+a full read-write cycle is initiated. Received address is sent to the address router through address bus (`x3`), and
+the controller start waiting for data on data bus (`x1`). If a read-only cycle was requested, the data received is sent
 both to the client on memory bus and back to the RAM chip controller on the data bus. Otherwise the data is sent on the
 memory bus, and memory controller awaits for another bit of data to sent back on data bus for write.
 
 ### Register Machine?..
 
-...
+Next step was implementing register block. As it does not exist in the final design, I won't go into much detail, and
+simply give a brief outline of the process and the outcome.
+
+As soon as I started working on the register block I realized that implementing three specialized registers is probably
+going to be much more involved than using another standard RAM chip to implement ten more general purpose registers.
+Why ten? So that I can offload a large part of ALU duties onto the register block itself. The register block end up
+being a fairly capable processing unit in its own right, interpreting a large, orthogonal set of opcodes where two
+least significant digits encoded the numbers of source and destination registers. It supported instructions of the
+general form `MOV rX + imm, rY` and `ADD rX + imm, rY` with several shortcuts for common special cases. At this point
+I changed the planned instruction set to a proper load-store with indirect adressing, as all arithmetics could be done
+insude the register block.
+
+Unfortunately, while all of this was aesthetically pleasing etc., once I implemented the monitor/debugger and got down
+to implementing the CPU, I realized that this just isn't going to work. Register block took up about as much space as
+the RAM system with 28 words. The remaining space on the board was sufficient to place two MC6000s. With fairly rich
+instruction set, simple experiments quickly demonstrated that there was no way to fit all the CPU logic into 28 MC6000
+instructions.
+
+I thrashed about a bit.
+
+I ditched the idea of doing indirect addressing as the only addressing mode and switched to direct addresses. Hey, this
+is a von Neumann arch, who cares! That helped a bit, but nowhere nearly enough. At this point I spent some time in a
+pit of engineering despair, but upon considering everything I realized that there was only one choice--register block had
+to go.
+
+After a brief detour to discuss the hardware monitor/debugger, I'll finish up the long story of many permutations of the
+B9900 arch and instruction set.
+
+### Hardware Monitor/Debugger
+
+This part of the overall design was absolutely useless as far as universality and "usefulness" were concerned, but it was
+critical for achieving my second goal--making something that looked like an actual almost-consumer device that could be
+used in the real world.
+
+I won't go into much detail on implementation, code can be viewed [in the save file](./prototyping-area-1.txt).
 
 ## Turing Completeness
 
 ...
+
+[1]: I'm gonna slap anyone who says, "Oh, but you can swap two integers..." here. If you don't understand why you really
+can't, *slap*.
 
