@@ -1,0 +1,234 @@
+[name] Betelgeuse 9900
+[puzzle] SzSandbox
+
+[traces] 
+......................
+...14.1554954.........
+...14.1494A94.155555C.
+...14.156.2A........A.
+...14.1C15561C.1555CA.
+...14.175C8..A.....AA.
+...14.154A354A.1C..AA.
+........169556..A..AA.
+.....9555D694954A..AA.
+.15C16..16.A.A94A..AA.
+...A...154.34AA16..AA.
+...A...9C..956354.16A.
+...355563556......156.
+......................
+
+[chip] 
+[type] UC6
+[x] 16
+[y] 1
+[code] 
+  mov x2 dat
+  mov dat x3
+  mov x3 acc
+  teq 3 dat
++ sub 1
+  teq 4 dat 
++ add 1
+  teq 5 dat
++ add 10
+  mov acc x0
+  mov acc x3
+  teq -8 dat
++ mov 0 x1
+  slp 1
+
+[chip] 
+[type] UC6
+[x] 5
+[y] 2
+[code] 
+  slx x3
+  tcp x3 3
+  mov x2 acc
+  mov -1 x0
+  mov acc x0
+  mov x0 acc
+  mov -1 x2
+  mov x2 dat
+  mov dat x0
+  mov x0 dat
++ mul dat
+- add dat
+  mov acc x0
+  mov 0 x3
+
+[chip] 
+[type] UC6
+[x] 9
+[y] 2
+[code] 
+st: slx x3
+  mov x3 dat
+  teq 1 dat
+- mov dat x1
+- mov x1 x3
+- jmp st
+  mov x2 dat
+  mov -1 x0
+  mov dat x0
+  tlt x0 1
+  mov -1 x2
+  mov x2 dat
++ mov dat x2
+  mov 0 x3
+
+[chip] 
+[type] UC6
+[x] 2
+[y] 3
+[code] 
+  slx x1
+  mov x1 dat
+  tlt dat 0
++ mov -1 x3
++ mov acc x3
++ mov x3 dat
++ mov dat x1
++ add 1
+- mov dat acc
+
+[chip] 
+[type] UC6
+[x] 12
+[y] 4
+[code] 
+  slx x2
+  mov x2 null
+lp: mov -1 x3
+  mov x3 acc
+  tgt acc 0
++ tlt acc 5
++ mov -1 x3
++ mov acc x1
++ mov x1 null
++ jmp lp
+
+[chip] 
+[type] LCDNS
+[x] 16
+[y] 4
+
+[chip] 
+[type] UC4X
+[x] 9
+[y] 6
+[code] 
+  slx x2
+  mov x2 acc
+  tlt acc 0
++ mov x2 acc
+  mov acc x3
+  mov x1 acc
+  mov acc x2
++ mov acc x1
+- mov x2 x1
+
+[chip] 
+[type] RAM
+[x] 1
+[y] 7
+
+[chip] 
+[type] UC4X
+[x] 4
+[y] 7
+[code] 
+  slx x2
+  mov x2 acc
+  mov acc x1
+  mov x0 x3
+  mov acc x1
+  mov x3 x0
+
+[chip] 
+[type] BRIDGE
+[x] 8
+[y] 7
+
+[chip] 
+[type] BRIDGE
+[x] 10
+[y] 8
+
+[chip] 
+[type] UC6
+[x] 13
+[y] 8
+[code] 
+  slx x3
+  mov x3 dat
+  teq 1 dat
++ tgt acc 0
++ sub 1
+  teq 2 dat
++ tlt acc 41
++ add 1
+  mov acc x1
+  mov x1 x3
+  mov x3 x1
+
+[chip] 
+[type] RAM
+[x] 1
+[y] 9
+
+[chip] 
+[type] UC4X
+[x] 4
+[y] 9
+[code] 
+  slx x3
+  mov x3 acc
+  sub 14
+  mov acc x1
+  mov x0 x2
+  mov acc x1
+  mov x2 x0
+
+[chip] 
+[type] BRIDGE
+[x] 7
+[y] 9
+
+[chip] 
+[type] RAM
+[x] 1
+[y] 11
+
+[chip] 
+[type] UC4X
+[x] 4
+[y] 11
+[code] 
+  slx x3
+  mov x3 acc
+  mov acc x1
+  mov x0 x2
+  mov acc x1
+  mov x2 x0
+
+[chip] 
+[type] UC4X
+[x] 9
+[y] 11
+[code] 
+s:slx x3
+  mov x3 acc
+  tlt acc 14
++ mov acc x0
++ jmp s
+  tlt acc 28
++ mov acc x1
+- sub 28
+- mov acc x2
+
+[chip] 
+[type] PAD
+[x] 15
+[y] 11
+
