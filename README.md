@@ -353,9 +353,209 @@ used in the real world.
 
 I won't go into much detail on implementation, code can be viewed [in the save file](./prototyping-area-1.txt).
 
+This system consists of standard numeric LCD and gamepad components as well as two MC6000s, one responsible for talking
+to memory controller and managing the edit address, and the other talking to gamepad and LCD and handling changes in the
+data. Due to the way gamepad works, this part of design actually moves forward in time (the CPU and the rest can
+operate in a single time unit). I eventually exploited this to my advantage: while the monitor tells the CPU to start
+running by sending a bit through XBus, the CPU transfers the control back to the monitor (upon executing `HALT`) by
+simply going to sleep.
+
+I implemented monitor/debugger after finishing with the register block, and as with the memory system it largely stayed
+the same through the subsequent permutations and architecture changes. I've run into a few problems down the road with
+edit address controller polluting the memory bus despite CPU already running (the memory system design should readily
+tell you that no two components should talk on the memory bus at the same time, unless they're coordinating between them
+to perform a single read-write cycle), but that was esily if crudely fixable. Part of that involved moving the CPU
+boot up from *Start* button key-down to key-up, the rest was reshuffling the way the monitor talked to the memory system
+a bit.
+
+As demonstrated in the videos above, this brilliant piece of UX is just about usable enough to input 40-word programs
+through it and run them multiple times with different parameters.
+
+### CPU
+
+After the register block debacle I had the understanding that I needed something simpler, and thus the final B9900 design
+and instruction set were born. After shuffling around the components on the board and adding another RAM chip (moving from
+28 word RAM to 42 word RAM to compensate for mostly 3-word instructions in the new design vs. mostly 2-word instructions
+in the old one) I had four spare MC6000s available to implement the CPU.
+
+That turned out to be just about enough.
+
+#### Program Counter (MC6000)
+
+      slx x1 # wait on instruction bus
+      mov x1 dat
+      tlt dat 0
+    + mov -1 x3 # read a word from memory and advance
+    + mov acc x3
+    + mov x3 dat
+    + mov dat x1
+    + add 1
+    - mov dat acc # jump!
+
+This little beauty simply manages the program counter. Despite the fact that it only has 9 instructions, it has to be an
+MC6000, as it needs both registers.
+
+PC listens on instruction bus (`x1`) which is connected the other three MCs constituting the CPU. Negative numbers are
+interpreted as requests to read the word at PC and advance the counter. The word is received through memory bus (`x3`)
+and sent back through instruction bus. Note that this reads a single word, not the entire instructions. It is the
+client's responsibility to ensure instruction boundaries are respected.
+
+Positive input on instruction bus is interpreted as a request for unconditional jump to that address. The PC's internal
+state is set to whatever address was supplied. The counter does not advance automatically in this case.
+
+Probably the hardest part of debugging the CPU was solving memory bus contention issues between the PC and the other CPU
+components. Thankfully, information provided by Shenzhen I/O allowed to identify these issues easily, but rearranging
+memory accessed to eliminate those problem was a whole 'nother story.
+
+#### CPU Main+HALT (MC6000)
+
+      slx x2 # wait for execution signal from the monitor
+      mov x2 null
+    lp: mov -1 x3
+      mov x3 acc
+      tgt acc 0 # opcode between 1 and 4?
+    + tlt acc 5
+    + mov -1 x3
+    + mov acc x1
+    + mov x1 null
+    + jmp lp
+
+The main task of this unit is handling the communications with the monitor, driving the PC (for the most part), and
+forwarding opcodes trickier than `HALT` to other CPU sub-units. Note that this controller sends a request for the
+second instruction word to the PC through instruction bus, despite the fact that it's the other two sub-units that
+are going to be receiving the actual response. This was a necessary optimization to fit everything into the
+available space.
+
+`x2` is the bus connected to the monitor, `x3` is the instruction bus, while `x1` is used to communicate with CPU
+JLEZ. The rest should be self-explanatory.
+
+#### CPU JLEZ (MC6000)
+
+    st: slx x3 # wait for opcode from CPU Main+HALT
+      mov x3 dat
+      teq 1 dat
+    - mov dat x1 # not a JLEZ, forward to the last processor
+    - mov x1 x3
+    - jmp st
+      mov x2 dat # read the word to be tested through memory bus
+      mov -1 x0
+      mov dat x0
+      tlt x0 1 # is it <= 0?
+      mov -1 x2 # read the last word of this instruction through the PC
+      mov x2 dat
+    + mov dat x2 # tell the PC to jump if the condition holds
+      mov 0 x3
+
+Handles the `JLEZ` instruction and forwards other instructions to the final CPU sub-unit.
+
+`x3` is the XBus connected to CPU Main+HALT, `x2` is the instruction bus, `x0` is the memory bus, `x1` links
+this unit to CPU ADD/MOV/MUL.
+
+#### CPU ADD/MOV/MUL (MC6000)
+
+  slx x3 # wait for opcode from CPU JLEZ
+  tcp x3 3
+  mov x2 acc # read the src address from the PC
+  mov -1 x0 # read the word at src through memory bus
+  mov acc x0
+  mov x0 acc
+  mov -1 x2 # read the dst address from the PC
+  mov x2 dat
+  mov dat x0 # initiate read-write for dst through memory bus
+  mov x0 dat # receive current word at dst
++ mul dat
+- add dat
+  mov acc x0 # write the result to dst
+  mov 0 x3
+
+Handles the `ADD`, `MOV` and `MUL` instructions. The reason why the opcode for `MOV` is sandwiched between `ADD`'s
+and `MUL`'s is that this allows the use of `tcp` here to efficiently decode the instruction.
+
+`x3` is connected to CPU JLEZ, `x2` is the instruction bus and `x0` is the memory bus.
+
+### Final Remarks On Design
+
+The instruction set I ended up with kinda reminds me of [nand2tetris](http://www.nand2tetris.org/), but I'm sure
+that's sheer coincidence.
+
+This was a long, winding road, and I did not expect to find myself in this neighbourhood, but in hindsight I probably
+should have started small to begin with. I would have preferred to have a more traditional machine on my hands, with
+separate large but dumb RAM and a handful of capable, specialized registers, but hey. This is well within the
+parameters I established for myself in this project.
+
 ## Turing Completeness
 
-...
+So. Is Betelgeuse 9900 Turing complete? By extension, is Shenzhen I/O Turing complete? The answer is, yes, and no, and
+also sorta.
+
+Frankly, this question was at best of tertiary interest to me when I started working on this project. Simply because it
+is not a very interesting question, in my opinion.
+
+The [proof](https://www.youtube.com/watch?v=sX_G8jtZceg) by Markus Persson that
+[Infinifactory](http://www.zachtronics.com/infinifactory/) is Turing complete by construction of
+[Rule 110](https://en.wikipedia.org/wiki/Rule_110) processor was amazing. But even then, it wasn't that the fact itself
+was particularly surprising. Anyone who's played Infinifactory would quickly get the feeling that Things were Possible.
+It's just that actually constructing a Rule 110 implementation in a friggin' game about blocks and stuff is an
+astonishing feat of ingenuity, persistence and sheer nerdiness.
+
+The fact that Shenzhen I/O is Turing complete is even less surprising, because it doesn't hide the notion of computation
+behind the abstractions (or perhaps instantiations) of blocks and conveyors. It's very much a game that's all about
+computation, pure and simple, and the feeling that you can do anything, given space and money, is much, much stronger.
+
+Then again, of course neither Infinifactory nor Shenzhen I/O is *actually* Turing complete. We're not talking about
+pure, divine combinatory logic here, mateys. Neither can operate on arbitrarily large data. The same applies to B9900,
+of course. In practice, we usually stick to hand-wavy argument that go like, "Oh, but let's consider a slightly
+extended impractical model of this computational device that operates on arbitrary precision integers." So we have this
+notion of "sorta Turing completeness", which means that some simple generalization is Turing complete in precise sense,
+so we assume that our computational device can placidly bask in reflected glory of its bigger brother.
+
+The second aspect is that there's no actual proof that B9900 (real or ideal) is Turing complete, only some evidence in
+favour of this. It is widely "known" that "some" arithmetics and reasonably powerful conditional branching is sufficient
+for Turing completeness, but personally, I've never seen an actual proof of that. It is also widely "known" that
+[SUBLEQ](https://en.wikipedia.org/wiki/One_instruction_set_computer#Subtract_and_branch_if_less_than_or_equal_to_zero)
+(along with other OISCs) is also Turing complete. Of course, `SUBLEQ a, b, c` is trivially expressible in B9900:
+
+            MOV     a, TEMP
+            MUL     MINUS1, TEMP
+            ADD     TEMP, b
+            JLEZ    b, c
+            ...
+    MINUS1: DATA    -1
+    TEMP:   DATA     0
+
+But again, I haven't been able to track down SUBLEQ's actual proof of Turing completeness. It's either a case of
+infinite circular references of esolang to paper to esolang to paper etc., or a road that terminates in $200
+paper-only monographs not available through ACM DL. Yeah, no.
+
+So netheir argument consistutes an actual proof in my book.
+
+How about implementing the same ole Rule 110? I believe that this is definitely possible, but it would be an extremely
+futile effort. It certainly wouldn't fit in the 42 words of actual B9900, and therefore verifying it would be inordinately
+hard.
+
+No conceptual blocks, though, as far as I can tell. Here's the roadmap:
+
+1. Implementing a single step is key, as the rest boils down to repeating that step until some condition holds.
+    You could `HALT` every now and then, so that the operator would have to ask the program to continue.
+    Alternately, just run until out of memory, it's just a proof of concept, right?
+2. States could be represented by arrays of zeroes and ones, and arrays are certainly implementable using makeshift
+    indirect addressing.
+3. The three neighbouring cells can be easily interpreted as a binary number, which could then be dispatched on,
+    or just used as an index in the static lookup table.
+4. Infinite periodic background pattern might be the biggest problem conceptually, but I don't see any hard problems
+    in writing a function that would yield the state of the pattern at any point, which could then be used whenever
+    we need a value from outside the state we're actually keeping.
+
+It's another long road, likely more winding than the road to B9900 was, and to me, far less interesting. Following it
+is left as an exercise for a rigour-oriented reader.
+
+### tl;dr
+
+The summary is that, sure, B9900 can compute some stuff, like small factorials or GCDs. It's not lacking general
+recursion, it's just lacking memory. Give me a larger board and more memory, and it will be able to compute even more
+stuff. No reason why we couldn't stuff merge sort into a thousand words. If we consider an extended, ideal model using
+arbitrary precision integers, and having an inexhaustible source of on-demand memory, why, it's blindingly obvious
+that it would be Turing complete, even though the formal proof does not exist.
 
 [1]: I'm gonna slap anyone who says, "Oh, but you can swap two integers..." here. If you don't understand why you really
 can't, *slap*.
