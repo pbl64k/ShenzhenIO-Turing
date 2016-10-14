@@ -510,10 +510,10 @@ notion of "sorta Turing completeness", which means that some simple generalizati
 so we assume that our computational device can placidly bask in reflected glory of its bigger brother.
 
 The second aspect is that there's no actual proof that B9900 (real or ideal) is Turing complete, only some evidence in
-favour of this. It is widely "known" that "some" arithmetics and reasonably powerful conditional branching is sufficient
+favour of this. It is widely "known" that "some" arithmetics and reasonably powerful conditional branching are sufficient
 for Turing completeness, but personally, I've never seen an actual proof of that. It is also widely "known" that
 [SUBLEQ](https://en.wikipedia.org/wiki/One_instruction_set_computer#Subtract_and_branch_if_less_than_or_equal_to_zero)
-(along with other OISCs) is also Turing complete. Of course, `SUBLEQ a, b, c` is trivially expressible in B9900:
+(along with other OISCs) is Turing complete. Of course, `SUBLEQ a, b, c` is trivially expressible in B9900:
 
             MOV     a, TEMP
             MUL     MINUS1, TEMP
