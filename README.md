@@ -24,7 +24,7 @@ The architecture is capable of addressing 1000 words of RAM, and the memory cont
 chips could be easily added to it up to that limit. Unfortunately, there simply isn't enough space on the virtual
 circuit board to fit more that one address router assembly.
 
-The CPU has no access to I/O devices, so the only way the operator can interact with the program is through using the
+The CPU has no access to I/O devices, so the only way the operator can interact with the program is by using the
 hardware monitor/debugger. Once again, ignoring the board space limitations, I/O could be implemented without changing
 the architecture or instruction set by injecting a DMA controller into the memory bus.
 
@@ -64,7 +64,7 @@ compensates for that by being a stored-program computer, thus being capable of r
 
 Words are decimal integers in the -999 to 999 range, as dictated by the underlying "chips."
 
-## Indirect Addressing
+### Indirect Addressing
 
 While all instructions use direct addressing mode, indirect addressing can be easily implemented by using
 self-modifying code. For example, `MOV [src], [dst]` could be implemented as:
@@ -219,15 +219,15 @@ have severe limitations, with the mighty MC6000 being [incapable](#user-content-
 without outside help, for example.
 
 So my primary goal when starting this project was to implement something ostensibly general-purpose and at least approaching
-capabilities of first microcomputers from the 1970s. I also wanted to create something that would have at least remotely
+the capabilities of first microcomputers from the seventies. I also wanted to create something that would have at least remotely
 usable yet realistic looking UI. Using ROM chips for entering the code then dumping it into RAM on startup probably would
 have been an easy way out, but I really wanted to fit numeric LCD and gamepad into this project.
 
-Looking at the final results, I would say that B9900 successfully achieves both of these goals.
+Looking at the final results, I would say that B9900 successfully achieved both of these goals.
 
 ### Initial Plans
 
-B9900 architecture and instruction set are largely something that I had to go with, as my original designs failed one after
+B9900 architecture and instruction set are largely something that I had to go with, as my previous designs failed one after
 another.
 
 I dismissed the idea of using [OISC](https://en.wikipedia.org/wiki/One_instruction_set_computer) before I even started,
@@ -502,18 +502,18 @@ The fact that Shenzhen I/O is Turing complete is even less surprising, because i
 behind the abstractions (or perhaps instantiations) of blocks and conveyors. It's very much a game that's all about
 computation, pure and simple, and the feeling that you can do anything, given space and money, is much, much stronger.
 
-Then again, of course neither Infinifactory nor Shenzhen I/O is *actually* Turing complete. We're not talking about
+Then again, of course neither Infinifactory nor Shenzhen I/O are *actually* Turing complete. We're not talking about
 pure, divine combinatory logic here, mateys. Neither can operate on arbitrarily large data. The same applies to B9900,
-of course. In practice, we usually stick to hand-wavy argument that go like, "Oh, but let's consider a slightly
+of course. In practice, we usually stick to hand-wavy arguments that go like, "Oh, but let's consider a slightly
 extended impractical model of this computational device that operates on arbitrary precision integers." So we have this
 notion of "sorta Turing completeness", which means that some simple generalization is Turing complete in precise sense,
 so we assume that our computational device can placidly bask in reflected glory of its bigger brother.
 
 The second aspect is that there's no actual proof that B9900 (real or ideal) is Turing complete, only some evidence in
-favour of this. It is widely "known" that "some" arithmetics and reasonably powerful conditional branching are sufficient
+favour of this. It is widely "known" that "some" arithmetic operations plus reasonably powerful conditional branching are sufficient
 for Turing completeness, but personally, I've never seen an actual proof of that. It is also widely "known" that
 [SUBLEQ](https://en.wikipedia.org/wiki/One_instruction_set_computer#Subtract_and_branch_if_less_than_or_equal_to_zero)
-(along with other OISCs) is Turing complete. Of course, `SUBLEQ a, b, c` is trivially expressible in B9900:
+(along with several other OISCs) is Turing complete. Of course, `SUBLEQ a, b, c` is trivially expressible in B9900:
 
             MOV     a, TEMP
             MUL     MINUS1, TEMP
@@ -523,8 +523,8 @@ for Turing completeness, but personally, I've never seen an actual proof of that
     MINUS1: DATA    -1
     TEMP:   DATA     0
 
-But again, I haven't been able to track down SUBLEQ's actual proof of Turing completeness. It's either a case of
-infinite circular references of esolang to paper to esolang to paper etc., or a road that terminates in $200
+But again, I haven't been able to track down SUBLEQ's actual proof of Turing completeness. It's always either a case of
+infinite circular references of esolang to paper to esolang to paper etc., or a path that terminates in $200
 paper-only monographs not available through ACM DL. Yeah, no.
 
 So netheir argument consistutes an actual proof in my book.
